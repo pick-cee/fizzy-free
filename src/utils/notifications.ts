@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export class NotificationManager {
   private static instance: NotificationManager;
-  private scheduledNotifications: number[] = [];
 
   static getInstance(): NotificationManager {
     if (!NotificationManager.instance) {
@@ -10,101 +10,86 @@ export class NotificationManager {
   }
 
   async requestPermission(): Promise<boolean> {
-    if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
+    if (!('Notification' in window) || !navigator.serviceWorker) {
+      console.warn('This browser does not support notifications.');
       return false;
     }
-
-    if (Notification.permission === 'granted') {
-      return true;
-    }
-
     const permission = await Notification.requestPermission();
     return permission === 'granted';
   }
 
-  scheduleNotifications(): void {
-    this.clearScheduledNotifications();
-
+  async scheduleNotifications(): Promise<void> {
     if (Notification.permission !== 'granted') {
+      console.log('Notification permission not granted.');
       return;
     }
 
-    this.scheduleRecurringNotifications();
-  }
+    const registration = await navigator.serviceWorker.ready;
 
-  private scheduleRecurringNotifications(): void {
-    const scheduleForDate = (date: Date) => {
-      const afternoonTime = new Date(date);
+    // Clear any previously scheduled notifications
+    const scheduledNotifications = await registration.getNotifications({ tag: 'fizzy-tracker-reminder' });
+    scheduledNotifications.forEach(notification => notification.close());
+
+    // Check for modern scheduling support
+    const supportsScheduling = 'showTrigger' in Notification.prototype;
+
+    // Schedule notifications for the next 7 days
+    for (let i = 0; i < 7; i++) {
+      const afternoonTime = new Date();
+      afternoonTime.setDate(afternoonTime.getDate() + i);
       afternoonTime.setHours(15, 0, 0, 0);
 
-      const eveningTime = new Date(date);
+      const eveningTime = new Date();
+      eveningTime.setDate(eveningTime.getDate() + i);
       eveningTime.setHours(20, 45, 0, 0);
 
-      const now = new Date();
+      const now = Date.now();
 
-      if (afternoonTime > now) {
-        const timeoutId = window.setTimeout(() => {
-          this.showNotification('Afternoon Check-in', 'Time for your 3:00 PM check-in! How are you doing today?', '🌅');
-        }, afternoonTime.getTime() - now.getTime());
-        this.scheduledNotifications.push(timeoutId);
+      if (afternoonTime.getTime() > now) {
+        this.showNotification(
+          'Afternoon Check-in',
+          'Time for your 3:00 PM check-in! How are you doing today?',
+          supportsScheduling ? new (window as any).TimestampTrigger(afternoonTime.getTime()) : undefined
+        );
       }
 
-      if (eveningTime > now) {
-        const timeoutId = window.setTimeout(() => {
-          this.showNotification('Evening Check-in', 'Time for your 8:45 PM check-in! Finish strong today!', '🌙');
-        }, eveningTime.getTime() - now.getTime());
-        this.scheduledNotifications.push(timeoutId);
+      if (eveningTime.getTime() > now) {
+        this.showNotification(
+          'Evening Check-in',
+          'Time for your 8:45 PM check-in! Finish strong today!',
+          supportsScheduling ? new (window as any).TimestampTrigger(eveningTime.getTime()) : undefined
+        );
       }
+    }
+
+    if (supportsScheduling) {
+      console.log('Successfully scheduled notifications using TimestampTrigger.');
+    } else {
+      console.log('Browser does not support scheduling, notifications will only appear if the app is open.');
+    }
+  }
+
+  async showNotification(title: string, body: string, trigger?: any): Promise<void> {
+    const registration = await navigator.serviceWorker.ready;
+    const options: NotificationOptions = {
+      body,
+      icon: '/vite.svg',
+      badge: '/vite.svg',
+      tag: 'fizzy-tracker-reminder',
     };
 
-    scheduleForDate(new Date());
-
-    for (let i = 1; i <= 7; i++) {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + i);
-      scheduleForDate(futureDate);
+    if (trigger) {
+      options.showTrigger = trigger;
     }
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 1, 0, 0);
-
-    const timeUntilMidnight = tomorrow.getTime() - new Date().getTime();
-    const midnightTimeout = window.setTimeout(() => {
-      this.scheduleRecurringNotifications();
-    }, timeUntilMidnight);
-
-    this.scheduledNotifications.push(midnightTimeout);
+    await registration.showNotification(title, options);
   }
 
-  private showNotification(title: string, body: string, icon?: string): void { //
+  async testNotification(): Promise<void> {
     if (Notification.permission === 'granted') {
-      const notification = new Notification(title, { //
-        body,
-        icon: '/vite.svg',
-        badge: '/vite.svg',
-        tag: 'fizzy-tracker',
-        requireInteraction: true,
-        // FIX: The 'actions' property is not supported in this context and was causing the error.
-        // It has been removed. The 'onclick' handler below provides the same functionality.
-      });
-
-      notification.onclick = () => { //
-        window.focus();
-        notification.close();
-      };
-
-      setTimeout(() => notification.close(), 10000);
+      this.showNotification('Test Notification', 'If you see this, notifications are working!');
+    } else {
+      alert('Notification permission is not granted. Please enable it first.');
     }
-  }
-
-  clearScheduledNotifications(): void {
-    this.scheduledNotifications.forEach(id => clearTimeout(id));
-    this.scheduledNotifications = [];
-  }
-
-  testNotification(): void { //
-    this.showNotification('Test Notification', 'Notifications are working! You\'ll receive reminders at 3:00 PM and 8:45 PM daily.', '✅'); //
   }
 }
