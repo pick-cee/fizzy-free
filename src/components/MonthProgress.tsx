@@ -34,7 +34,6 @@ export const MonthProgress: React.FC<MonthProgressProps> = ({ monthData }) => {
 						</p>
 					</div>
 				</div>
-
 				<div className="text-right">
 					<div className="text-3xl font-bold text-gray-800">
 						{monthData.percentage.toFixed(0)}%
@@ -78,17 +77,16 @@ export const MonthProgress: React.FC<MonthProgressProps> = ({ monthData }) => {
 				</div>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4 mb-6">
+			{/* FIX: Make stats grid responsive. */}
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
 				<div className="bg-blue-50 p-4 rounded-lg text-center">
 					<div className="text-2xl font-bold text-blue-600">
 						{monthData.cleanDays}
 					</div>
 					<div className="text-sm text-gray-600">Clean Check-ins</div>
 				</div>
-
 				<div className="bg-gray-50 p-4 rounded-lg text-center">
 					<div className="text-2xl font-bold text-gray-600">
-						{/* FIX: Corrected property from totalDays to totalCheckins */}
 						{monthData.totalCheckins}
 					</div>
 					<div className="text-sm text-gray-600">Total Check-ins</div>
