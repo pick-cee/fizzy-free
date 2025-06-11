@@ -17,15 +17,23 @@ export const ReminderSettings: React.FC = () => {
 		useState<NotificationPermission>("default");
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSupported, setIsSupported] = useState(true);
+	// FIX: Add state to hold the generated calendar URL.
+	const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
 
 	// Check for notification support when the component loads
 	useEffect(() => {
-		if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-			setIsSupported(false);
-			return;
-		}
-		setPermission(Notification.permission);
-		setNotificationsEnabled(Notification.permission === "granted");
+		const checkSupport = () => {
+			if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+				setIsSupported(false);
+				// Generate the calendar file URL as a fallback for iOS
+				generateCalendarFile();
+			} else {
+				setIsSupported(true);
+				setPermission(Notification.permission);
+				setNotificationsEnabled(Notification.permission === "granted");
+			}
+		};
+		checkSupport();
 	}, []);
 
 	// Handler to request permission and schedule notifications
@@ -38,7 +46,6 @@ export const ReminderSettings: React.FC = () => {
 				setNotificationsEnabled(true);
 				setPermission("granted");
 				await notificationManager.scheduleNotifications();
-				// Give a small delay for the user to see the success message
 				setTimeout(() => {
 					notificationManager.testNotification();
 				}, 1000);
@@ -57,8 +64,8 @@ export const ReminderSettings: React.FC = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
-	// Handler for iOS users to download a calendar event
-	const handleAddToCalendar = () => {
+	// FIX: This function now only generates the calendar data and stores it in state.
+	const generateCalendarFile = () => {
 		const now = new Date();
 		const event: EventAttributes = {
 			title: "Fizzy Free Check-in Reminders",
@@ -67,7 +74,7 @@ export const ReminderSettings: React.FC = () => {
 			start: [now.getFullYear(), now.getMonth() + 1, now.getDate()],
 			startInputType: "local",
 			duration: { minutes: 15 },
-			recurrenceRule: "FREQ=DAILY;COUNT=180", // Repeats daily for ~6 months
+			recurrenceRule: "FREQ=DAILY;COUNT=180",
 			alarms: [
 				{
 					action: "display",
@@ -85,26 +92,12 @@ export const ReminderSettings: React.FC = () => {
 		ics.createEvent(event, (error, value) => {
 			if (error) {
 				console.error(error);
-				alert("Sorry, there was an error creating the calendar event.");
 				return;
 			}
-
-			// FIX: Use a `data:` URI instead of a Blob to improve compatibility with Chrome on iOS.
-			// This has a higher chance of directly opening the Calendar app.
 			const uri = `data:text/calendar;charset=utf-8,${encodeURIComponent(
 				value
 			)}`;
-
-			// We still use a link to trigger it, but now it's a direct data link.
-			const link = document.createElement("a");
-			link.href = uri;
-
-			// The download attribute is no longer necessary with this method.
-			// link.setAttribute('download', 'FizzyFreeReminders.ics');
-
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
+			setCalendarUrl(uri);
 		});
 	};
 
@@ -135,13 +128,18 @@ export const ReminderSettings: React.FC = () => {
 						</div>
 					</div>
 				</div>
-				<button
-					onClick={handleAddToCalendar}
-					className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+				{/* FIX: Use a standard `<a>` link instead of a button. This is more reliable. */}
+				<a
+					href={calendarUrl || "#"}
+					download="FizzyFreeReminders.ics"
+					className={`w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center ${
+						!calendarUrl ? "opacity-50 cursor-not-allowed" : ""
+					}`}
+					aria-disabled={!calendarUrl}
 				>
 					<Download className="mr-2" size={20} />
 					Add to Calendar
-				</button>
+				</a>
 			</div>
 		);
 	}
