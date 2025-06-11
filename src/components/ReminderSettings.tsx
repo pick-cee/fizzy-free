@@ -7,6 +7,7 @@ import {
 	ShieldOff,
 	Download,
 	Link as LinkIcon,
+	Edit,
 } from "lucide-react";
 import { NotificationManager } from "../utils/notifications";
 import * as ics from "ics";
@@ -19,7 +20,6 @@ export const ReminderSettings: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSupported, setIsSupported] = useState(true);
 	const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
-	// FIX: Add state to manage the new guided UI flow for iOS.
 	const [calendarLinkVisible, setCalendarLinkVisible] = useState(false);
 
 	// Check for notification support when the component loads
@@ -61,7 +61,7 @@ export const ReminderSettings: React.FC = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
-	// FIX: This function now generates the calendar link and shows the next step in the UI.
+	// This function now generates the calendar link and shows the next step in the UI.
 	const handleGenerateLink = () => {
 		const now = new Date();
 		const event: EventAttributes = {
@@ -112,35 +112,36 @@ export const ReminderSettings: React.FC = () => {
 						</p>
 					</div>
 				</div>
-				<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
-					<div className="flex items-start">
-						<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
-						<div>
-							<p className="text-sm font-medium text-orange-800 mb-1">
-								Two-Step Process for iOS
-							</p>
-							<p className="text-sm text-orange-700">
-								Due to iOS restrictions, you'll first generate a link, then tap
-								it to download and add the reminders to your calendar.
-							</p>
+
+				{/* FIX: This new guided UI provides clear instructions for the user. */}
+				{!calendarLinkVisible ? (
+					<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
+						<div className="flex items-start">
+							<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
+							<div>
+								<p className="text-sm font-medium text-orange-800 mb-1">
+									Alternative for iPhone/iPad
+								</p>
+								<p className="text-sm text-orange-700">
+									iOS does not allow web notifications. As a reliable
+									alternative, you can add daily reminders directly to your
+									calendar in two easy steps.
+								</p>
+							</div>
 						</div>
 					</div>
-				</div>
+				) : null}
 
-				{/* FIX: Conditional UI based on whether the link has been generated. */}
 				{!calendarLinkVisible ? (
 					<button
 						onClick={handleGenerateLink}
 						className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
 					>
-						<LinkIcon className="mr-2" size={20} />
-						1. Generate Calendar Link
+						<Edit className="mr-2" size={20} />
+						Step 1: Create Calendar File
 					</button>
 				) : (
 					<div className="space-y-4">
-						<p className="text-center text-sm text-gray-600 font-medium">
-							Step 2: Tap the link below, then open the downloaded file.
-						</p>
 						<a
 							href={calendarUrl || "#"}
 							download="FizzyFreeReminders.ics"
@@ -150,8 +151,20 @@ export const ReminderSettings: React.FC = () => {
 							aria-disabled={!calendarUrl}
 						>
 							<Download className="mr-2" size={20} />
-							Download Reminders
+							Step 2: Download Reminders File
 						</a>
+						<div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+							<p className="text-sm font-medium text-blue-800 mb-2">
+								After Downloading:
+							</p>
+							<ol className="list-decimal list-inside text-sm text-blue-700 space-y-1">
+								<li>At the bottom of Chrome, tap the **"Downloads"** icon.</li>
+								<li>Tap the **FizzyFreeReminders.ics** file.</li>
+								<li>
+									Your Calendar will open. Tap **"Add All"** at the top right.
+								</li>
+							</ol>
+						</div>
 					</div>
 				)}
 			</div>
