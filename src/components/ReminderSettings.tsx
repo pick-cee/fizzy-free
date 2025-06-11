@@ -6,6 +6,7 @@ import {
 	AlertCircle,
 	ShieldOff,
 	Download,
+	Link as LinkIcon,
 } from "lucide-react";
 import { NotificationManager } from "../utils/notifications";
 import * as ics from "ics";
@@ -17,23 +18,19 @@ export const ReminderSettings: React.FC = () => {
 		useState<NotificationPermission>("default");
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSupported, setIsSupported] = useState(true);
-	// FIX: Add state to hold the generated calendar URL.
 	const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
+	// FIX: Add state to manage the new guided UI flow for iOS.
+	const [calendarLinkVisible, setCalendarLinkVisible] = useState(false);
 
 	// Check for notification support when the component loads
 	useEffect(() => {
-		const checkSupport = () => {
-			if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-				setIsSupported(false);
-				// Generate the calendar file URL as a fallback for iOS
-				generateCalendarFile();
-			} else {
-				setIsSupported(true);
-				setPermission(Notification.permission);
-				setNotificationsEnabled(Notification.permission === "granted");
-			}
-		};
-		checkSupport();
+		if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+			setIsSupported(false);
+		} else {
+			setIsSupported(true);
+			setPermission(Notification.permission);
+			setNotificationsEnabled(Notification.permission === "granted");
+		}
 	}, []);
 
 	// Handler to request permission and schedule notifications
@@ -64,8 +61,8 @@ export const ReminderSettings: React.FC = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
-	// FIX: This function now only generates the calendar data and stores it in state.
-	const generateCalendarFile = () => {
+	// FIX: This function now generates the calendar link and shows the next step in the UI.
+	const handleGenerateLink = () => {
 		const now = new Date();
 		const event: EventAttributes = {
 			title: "Fizzy Free Check-in Reminders",
@@ -92,12 +89,13 @@ export const ReminderSettings: React.FC = () => {
 		ics.createEvent(event, (error, value) => {
 			if (error) {
 				console.error(error);
+				alert("Sorry, there was an error creating the calendar file.");
 				return;
 			}
-			const uri = `data:text/calendar;charset=utf-8,${encodeURIComponent(
-				value
-			)}`;
-			setCalendarUrl(uri);
+			const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
+			const url = URL.createObjectURL(blob);
+			setCalendarUrl(url);
+			setCalendarLinkVisible(true); // Show the download link and instructions
 		});
 	};
 
@@ -119,27 +117,43 @@ export const ReminderSettings: React.FC = () => {
 						<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
 						<div>
 							<p className="text-sm font-medium text-orange-800 mb-1">
-								Alternative for iPhone/iPad
+								Two-Step Process for iOS
 							</p>
 							<p className="text-sm text-orange-700">
-								iOS does not allow web notifications. As a reliable alternative,
-								you can add daily reminders directly to your calendar.
+								Due to iOS restrictions, you'll first generate a link, then tap
+								it to download and add the reminders to your calendar.
 							</p>
 						</div>
 					</div>
 				</div>
-				{/* FIX: Use a standard `<a>` link instead of a button. This is more reliable. */}
-				<a
-					href={calendarUrl || "#"}
-					download="FizzyFreeReminders.ics"
-					className={`w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center ${
-						!calendarUrl ? "opacity-50 cursor-not-allowed" : ""
-					}`}
-					aria-disabled={!calendarUrl}
-				>
-					<Download className="mr-2" size={20} />
-					Add to Calendar
-				</a>
+
+				{/* FIX: Conditional UI based on whether the link has been generated. */}
+				{!calendarLinkVisible ? (
+					<button
+						onClick={handleGenerateLink}
+						className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+					>
+						<LinkIcon className="mr-2" size={20} />
+						1. Generate Calendar Link
+					</button>
+				) : (
+					<div className="space-y-4">
+						<p className="text-center text-sm text-gray-600 font-medium">
+							Step 2: Tap the link below, then open the downloaded file.
+						</p>
+						<a
+							href={calendarUrl || "#"}
+							download="FizzyFreeReminders.ics"
+							className={`w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center ${
+								!calendarUrl ? "opacity-50 cursor-not-allowed" : ""
+							}`}
+							aria-disabled={!calendarUrl}
+						>
+							<Download className="mr-2" size={20} />
+							Download Reminders
+						</a>
+					</div>
+				)}
 			</div>
 		);
 	}
