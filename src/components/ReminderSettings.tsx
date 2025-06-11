@@ -88,18 +88,27 @@ export const ReminderSettings: React.FC = () => {
 				alert("Sorry, there was an error creating the calendar event.");
 				return;
 			}
-			const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
-			const url = URL.createObjectURL(blob);
+
+			// FIX: Use a `data:` URI instead of a Blob to improve compatibility with Chrome on iOS.
+			// This has a higher chance of directly opening the Calendar app.
+			const uri = `data:text/calendar;charset=utf-8,${encodeURIComponent(
+				value
+			)}`;
+
+			// We still use a link to trigger it, but now it's a direct data link.
 			const link = document.createElement("a");
-			link.href = url;
-			link.setAttribute("download", "FizzyFreeReminders.ics");
+			link.href = uri;
+
+			// The download attribute is no longer necessary with this method.
+			// link.setAttribute('download', 'FizzyFreeReminders.ics');
+
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
 		});
 	};
 
-	// FIX: This section now correctly shows the "Add to Calendar" UI for iOS users.
+	// Render this card if notifications are NOT supported (i.e., on iOS)
 	if (!isSupported) {
 		return (
 			<div className="bg-white rounded-2xl shadow-lg p-6">
