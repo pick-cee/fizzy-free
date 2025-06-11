@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-	Bell,
-	Clock,
-	CheckCircle,
-	AlertCircle,
-	ShieldOff,
-	CalendarPlus,
-} from "lucide-react";
+import { Bell, Clock, CheckCircle, AlertCircle, ShieldOff } from "lucide-react";
 import { NotificationManager } from "../utils/notifications";
 
 export const ReminderSettings: React.FC = () => {
@@ -55,78 +48,36 @@ export const ReminderSettings: React.FC = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
-	// FIX: This function now generates a simple, valid Google Calendar link for a specific time.
-	const getGoogleCalendarLink = (hour: number, minute: number) => {
-		const title = encodeURIComponent(
-			`Fizzy Free Check-in (${hour}:${minute.toString().padStart(2, "0")})`
-		);
-		const details = encodeURIComponent(
-			"Daily reminder for your Fizzy Free Journey."
-		);
-
-		const startTime = new Date();
-		startTime.setHours(hour, minute, 0, 0);
-
-		const formatTime = (date: Date) =>
-			date.toISOString().replace(/-|:|\.\d{3}/g, "");
-
-		const recurrenceRule = "RRULE:FREQ=DAILY;COUNT=180";
-		const dates = `${formatTime(startTime)}/${formatTime(
-			new Date(startTime.getTime() + 15 * 60000)
-		)}`;
-
-		return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dates}&recur=${recurrenceRule}`;
-	};
-
-	// Render this card if notifications are NOT supported (i.e., on iOS)
+	// FIX: This section has been simplified to only show a "not supported" message.
+	// All calendar link functionality has been removed as requested.
 	if (!isSupported) {
 		return (
 			<div className="bg-white rounded-2xl shadow-lg p-6">
 				<div className="flex items-center mb-4">
 					<ShieldOff className="text-orange-600 mr-3" size={24} />
 					<div>
-						<h3 className="font-bold text-gray-800">Get Reminders on iOS</h3>
+						<h3 className="font-bold text-gray-800">Reminders Not Supported</h3>
 						<p className="text-sm text-gray-600">
-							Use your calendar for notifications.
+							This feature is unavailable on your browser.
 						</p>
 					</div>
 				</div>
 
-				<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
+				<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
 					<div className="flex items-start">
 						<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
 						<div>
 							<p className="text-sm font-medium text-orange-800 mb-1">
-								Alternative for iPhone/iPad
+								Feature Unavailable
 							</p>
 							<p className="text-sm text-orange-700">
-								iOS does not allow web notifications. Add separate reminders to
-								your Google Calendar for each check-in time.
+								Unfortunately, your current browser does not support web
+								notifications. To use daily reminders, please try opening this
+								app in a different browser on your phone that supports this
+								feature, such as Chrome on Android.
 							</p>
 						</div>
 					</div>
-				</div>
-
-				{/* FIX: Two separate, simple links for each reminder time. This is a reliable method. */}
-				<div className="space-y-3">
-					<a
-						href={getGoogleCalendarLink(15, 0)}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-					>
-						<CalendarPlus className="mr-2" size={20} />
-						Add 3:00 PM Reminder
-					</a>
-					<a
-						href={getGoogleCalendarLink(20, 45)}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-					>
-						<CalendarPlus className="mr-2" size={20} />
-						Add 8:45 PM Reminder
-					</a>
 				</div>
 			</div>
 		);
