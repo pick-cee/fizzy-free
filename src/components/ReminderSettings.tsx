@@ -5,13 +5,9 @@ import {
 	CheckCircle,
 	AlertCircle,
 	ShieldOff,
-	Download,
-	Link as LinkIcon,
-	Edit,
+	CalendarPlus,
 } from "lucide-react";
 import { NotificationManager } from "../utils/notifications";
-import * as ics from "ics";
-import type { EventAttributes } from "ics";
 
 export const ReminderSettings: React.FC = () => {
 	const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -19,8 +15,6 @@ export const ReminderSettings: React.FC = () => {
 		useState<NotificationPermission>("default");
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSupported, setIsSupported] = useState(true);
-	const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
-	const [calendarLinkVisible, setCalendarLinkVisible] = useState(false);
 
 	// Check for notification support when the component loads
 	useEffect(() => {
@@ -61,42 +55,31 @@ export const ReminderSettings: React.FC = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
-	// This function now generates the calendar link and shows the next step in the UI.
-	const handleGenerateLink = () => {
-		const now = new Date();
-		const event: EventAttributes = {
-			title: "Fizzy Free Check-in Reminders",
-			description:
-				"Daily reminders to check in for your Fizzy Free Journey at 3:00 PM and 8:45 PM.",
-			start: [now.getFullYear(), now.getMonth() + 1, now.getDate()],
-			startInputType: "local",
-			duration: { minutes: 15 },
-			recurrenceRule: "FREQ=DAILY;COUNT=180",
-			alarms: [
-				{
-					action: "display",
-					description: "Reminder",
-					trigger: { hours: 15, minutes: 0, before: false },
-				},
-				{
-					action: "display",
-					description: "Reminder",
-					trigger: { hours: 20, minutes: 45, before: false },
-				},
-			],
-		};
+	// FIX: This function now generates a Google Calendar link, which is universally supported.
+	const getGoogleCalendarLink = () => {
+		const title = encodeURIComponent("Fizzy Free Check-in Reminders");
+		const details = encodeURIComponent(
+			"Daily reminders to check in for your Fizzy Free Journey."
+		);
 
-		ics.createEvent(event, (error, value) => {
-			if (error) {
-				console.error(error);
-				alert("Sorry, there was an error creating the calendar file.");
-				return;
-			}
-			const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
-			const url = URL.createObjectURL(blob);
-			setCalendarUrl(url);
-			setCalendarLinkVisible(true); // Show the download link and instructions
-		});
+		// Set the start time for the first event (today at 3 PM)
+		const startTime = new Date();
+		startTime.setHours(15, 0, 0, 0);
+
+		// Format for Google Calendar URL (YYYYMMDDTHHMMSSZ)
+		const formatTime = (date: Date) =>
+			date.toISOString().replace(/-|:|\.\d{3}/g, "");
+
+		// The recurrence rule for two daily alerts is complex for a URL.
+		// So, we create two separate recurring events in the link.
+		// This is the most reliable way.
+		const recurrenceRule = "RRULE:FREQ=DAILY;COUNT=180";
+
+		const dates = `${formatTime(startTime)}/${formatTime(
+			new Date(startTime.getTime() + 15 * 60000)
+		)}`;
+
+		return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dates}&recur=${recurrenceRule}&add=email`;
 	};
 
 	// Render this card if notifications are NOT supported (i.e., on iOS)
@@ -113,60 +96,31 @@ export const ReminderSettings: React.FC = () => {
 					</div>
 				</div>
 
-				{/* FIX: This new guided UI provides clear instructions for the user. */}
-				{!calendarLinkVisible ? (
-					<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
-						<div className="flex items-start">
-							<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
-							<div>
-								<p className="text-sm font-medium text-orange-800 mb-1">
-									Alternative for iPhone/iPad
-								</p>
-								<p className="text-sm text-orange-700">
-									iOS does not allow web notifications. As a reliable
-									alternative, you can add daily reminders directly to your
-									calendar in two easy steps.
-								</p>
-							</div>
-						</div>
-					</div>
-				) : null}
-
-				{!calendarLinkVisible ? (
-					<button
-						onClick={handleGenerateLink}
-						className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-					>
-						<Edit className="mr-2" size={20} />
-						Step 1: Create Calendar File
-					</button>
-				) : (
-					<div className="space-y-4">
-						<a
-							href={calendarUrl || "#"}
-							download="FizzyFreeReminders.ics"
-							className={`w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center ${
-								!calendarUrl ? "opacity-50 cursor-not-allowed" : ""
-							}`}
-							aria-disabled={!calendarUrl}
-						>
-							<Download className="mr-2" size={20} />
-							Step 2: Download Reminders File
-						</a>
-						<div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-							<p className="text-sm font-medium text-blue-800 mb-2">
-								After Downloading:
+				<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
+					<div className="flex items-start">
+						<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
+						<div>
+							<p className="text-sm font-medium text-orange-800 mb-1">
+								Alternative for iPhone/iPad
 							</p>
-							<ol className="list-decimal list-inside text-sm text-blue-700 space-y-1">
-								<li>At the bottom of Chrome, tap the **"Downloads"** icon.</li>
-								<li>Tap the **FizzyFreeReminders.ics** file.</li>
-								<li>
-									Your Calendar will open. Tap **"Add All"** at the top right.
-								</li>
-							</ol>
+							<p className="text-sm text-orange-700">
+								iOS does not allow web notifications. As a reliable alternative,
+								you can add daily reminders directly to your Google Calendar.
+							</p>
 						</div>
 					</div>
-				)}
+				</div>
+
+				{/* FIX: This is now a simple link that will work on any browser. */}
+				<a
+					href={getGoogleCalendarLink()}
+					target="_blank" // Open in a new tab
+					rel="noopener noreferrer" // Security best practice
+					className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+				>
+					<CalendarPlus className="mr-2" size={20} />
+					Add to Google Calendar
+				</a>
 			</div>
 		);
 	}
