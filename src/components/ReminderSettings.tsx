@@ -55,31 +55,27 @@ export const ReminderSettings: React.FC = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
-	// FIX: This function now generates a Google Calendar link, which is universally supported.
-	const getGoogleCalendarLink = () => {
-		const title = encodeURIComponent("Fizzy Free Check-in Reminders");
+	// FIX: This function now generates a simple, valid Google Calendar link for a specific time.
+	const getGoogleCalendarLink = (hour: number, minute: number) => {
+		const title = encodeURIComponent(
+			`Fizzy Free Check-in (${hour}:${minute.toString().padStart(2, "0")})`
+		);
 		const details = encodeURIComponent(
-			"Daily reminders to check in for your Fizzy Free Journey."
+			"Daily reminder for your Fizzy Free Journey."
 		);
 
-		// Set the start time for the first event (today at 3 PM)
 		const startTime = new Date();
-		startTime.setHours(15, 0, 0, 0);
+		startTime.setHours(hour, minute, 0, 0);
 
-		// Format for Google Calendar URL (YYYYMMDDTHHMMSSZ)
 		const formatTime = (date: Date) =>
 			date.toISOString().replace(/-|:|\.\d{3}/g, "");
 
-		// The recurrence rule for two daily alerts is complex for a URL.
-		// So, we create two separate recurring events in the link.
-		// This is the most reliable way.
 		const recurrenceRule = "RRULE:FREQ=DAILY;COUNT=180";
-
 		const dates = `${formatTime(startTime)}/${formatTime(
 			new Date(startTime.getTime() + 15 * 60000)
 		)}`;
 
-		return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dates}&recur=${recurrenceRule}&add=email`;
+		return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dates}&recur=${recurrenceRule}`;
 	};
 
 	// Render this card if notifications are NOT supported (i.e., on iOS)
@@ -104,23 +100,34 @@ export const ReminderSettings: React.FC = () => {
 								Alternative for iPhone/iPad
 							</p>
 							<p className="text-sm text-orange-700">
-								iOS does not allow web notifications. As a reliable alternative,
-								you can add daily reminders directly to your Google Calendar.
+								iOS does not allow web notifications. Add separate reminders to
+								your Google Calendar for each check-in time.
 							</p>
 						</div>
 					</div>
 				</div>
 
-				{/* FIX: This is now a simple link that will work on any browser. */}
-				<a
-					href={getGoogleCalendarLink()}
-					target="_blank" // Open in a new tab
-					rel="noopener noreferrer" // Security best practice
-					className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-				>
-					<CalendarPlus className="mr-2" size={20} />
-					Add to Google Calendar
-				</a>
+				{/* FIX: Two separate, simple links for each reminder time. This is a reliable method. */}
+				<div className="space-y-3">
+					<a
+						href={getGoogleCalendarLink(15, 0)}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+					>
+						<CalendarPlus className="mr-2" size={20} />
+						Add 3:00 PM Reminder
+					</a>
+					<a
+						href={getGoogleCalendarLink(20, 45)}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+					>
+						<CalendarPlus className="mr-2" size={20} />
+						Add 8:45 PM Reminder
+					</a>
+				</div>
 			</div>
 		);
 	}
