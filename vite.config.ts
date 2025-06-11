@@ -1,9 +1,40 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      // This will generate the service worker file for us
+      injectRegister: 'auto',
+      workbox: {
+        // This ensures the service worker is available for notifications
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
+      // This will generate the manifest.webmanifest file
+      manifest: {
+        name: 'Fizzy Free Journey',
+        short_name: 'Fizzy Free',
+        description: 'An application to help you quit fizzy drinks and track your progress.',
+        theme_color: '#ffffff',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      }
+    })
+  ],
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
