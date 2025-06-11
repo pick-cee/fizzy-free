@@ -8,13 +8,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      // This will generate the service worker file for us
-      injectRegister: 'auto',
-      workbox: {
-        // This ensures the service worker is available for notifications
+      // FIX: Change strategy to 'injectManifest' to use our own service worker logic
+      strategies: 'injectManifest',
+      // FIX: Point to our custom service worker file
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       },
-      // This will generate the manifest.webmanifest file
       manifest: {
         name: 'Fizzy Free Journey',
         short_name: 'Fizzy Free',
@@ -34,6 +35,7 @@ export default defineConfig({
         ]
       }
     })
+
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],

@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Bell, Clock, CheckCircle, AlertCircle, ShieldOff } from "lucide-react";
+import {
+	Bell,
+	Clock,
+	CheckCircle,
+	AlertCircle,
+	ShieldOff,
+	Download,
+} from "lucide-react";
 import { NotificationManager } from "../utils/notifications";
+import * as ics from "ics";
+// FIX: Import the EventAttributes type for better type safety
+import type { EventAttributes } from "ics";
 
 export const ReminderSettings: React.FC = () => {
 	const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -9,8 +19,8 @@ export const ReminderSettings: React.FC = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isSupported, setIsSupported] = useState(true);
 
+	// Check for notification support when the component loads
 	useEffect(() => {
-		// FIX: More robust check for API support. This was causing Chrome on mobile to fail.
 		if (!("Notification" in window) || !("serviceWorker" in navigator)) {
 			setIsSupported(false);
 			return;
@@ -19,6 +29,7 @@ export const ReminderSettings: React.FC = () => {
 		setNotificationsEnabled(Notification.permission === "granted");
 	}, []);
 
+	// Handler to request permission and schedule notifications
 	const handleEnableNotifications = async () => {
 		setIsLoading(true);
 		try {
@@ -27,7 +38,8 @@ export const ReminderSettings: React.FC = () => {
 			if (granted) {
 				setNotificationsEnabled(true);
 				setPermission("granted");
-				await notificationManager.scheduleNotifications(); // Schedule after permission
+				await notificationManager.scheduleNotifications();
+				// Give a small delay for the user to see the success message
 				setTimeout(() => {
 					notificationManager.testNotification();
 				}, 1000);
@@ -41,42 +53,95 @@ export const ReminderSettings: React.FC = () => {
 		}
 	};
 
+	// Handler for the test notification button
 	const handleTestNotification = () => {
 		NotificationManager.getInstance().testNotification();
 	};
 
+	// Handler for iOS users to download a calendar event
+	const handleAddToCalendar = () => {
+		const now = new Date();
+		// FIX: Apply the imported EventAttributes type to the event object.
+		// This resolves the TypeScript error by ensuring the object shape is correct.
+		const event: EventAttributes = {
+			title: "Fizzy Free Check-in Reminders",
+			description:
+				"Daily reminders to check in for your Fizzy Free Journey at 3:00 PM and 8:45 PM.",
+			start: [now.getFullYear(), now.getMonth() + 1, now.getDate()],
+			startInputType: "local", // Recommended for clarity
+			duration: { minutes: 15 }, // Add a duration for the event
+			recurrenceRule: "FREQ=DAILY;COUNT=180", // Repeats daily for ~6 months
+			alarms: [
+				{
+					action: "display",
+					description: "Reminder",
+					trigger: { hours: 15, minutes: 0, before: false },
+				},
+				{
+					action: "display",
+					description: "Reminder",
+					trigger: { hours: 20, minutes: 45, before: false },
+				},
+			],
+		};
+
+		ics.createEvent(event, (error, value) => {
+			if (error) {
+				console.error(error);
+				alert("Sorry, there was an error creating the calendar event.");
+				return;
+			}
+			// Create a blob and trigger a download
+			const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			link.setAttribute("download", "FizzyFreeReminders.ics");
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		});
+	};
+
+	// Render this card if notifications are NOT supported (i.e., on iOS)
 	if (!isSupported) {
 		return (
 			<div className="bg-white rounded-2xl shadow-lg p-6">
 				<div className="flex items-center mb-4">
 					<ShieldOff className="text-orange-600 mr-3" size={24} />
 					<div>
-						<h3 className="font-bold text-gray-800">Reminders Not Supported</h3>
+						<h3 className="font-bold text-gray-800">Get Reminders on iOS</h3>
 						<p className="text-sm text-gray-600">
-							This feature is unavailable on your browser.
+							Use your calendar for notifications.
 						</p>
 					</div>
 				</div>
-				<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+				<div className="p-4 bg-orange-50 border border-orange-200 rounded-lg mb-4">
 					<div className="flex items-start">
 						<AlertCircle className="text-orange-600 mr-3 mt-0.5" size={20} />
 						<div>
 							<p className="text-sm font-medium text-orange-800 mb-1">
-								Feature Unavailable
+								Alternative for iPhone/iPad
 							</p>
 							<p className="text-sm text-orange-700">
-								Unfortunately, your current browser does not support web
-								notifications. To use daily reminders, please try opening this
-								app in a different browser on your phone (like Google Chrome or
-								Firefox).
+								iOS does not allow web notifications. As a reliable alternative,
+								you can add daily reminders directly to your calendar.
 							</p>
 						</div>
 					</div>
 				</div>
+				<button
+					onClick={handleAddToCalendar}
+					className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+				>
+					<Download className="mr-2" size={20} />
+					Add to Calendar
+				</button>
 			</div>
 		);
 	}
 
+	// Render this for all other supported browsers
 	return (
 		<div className="bg-white rounded-2xl shadow-lg p-6">
 			<div className="flex items-center mb-6">
