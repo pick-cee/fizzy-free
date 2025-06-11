@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { NotificationManager } from "../utils/notifications";
 import * as ics from "ics";
-// FIX: Import the EventAttributes type for better type safety
 import type { EventAttributes } from "ics";
 
 export const ReminderSettings: React.FC = () => {
@@ -61,15 +60,13 @@ export const ReminderSettings: React.FC = () => {
 	// Handler for iOS users to download a calendar event
 	const handleAddToCalendar = () => {
 		const now = new Date();
-		// FIX: Apply the imported EventAttributes type to the event object.
-		// This resolves the TypeScript error by ensuring the object shape is correct.
 		const event: EventAttributes = {
 			title: "Fizzy Free Check-in Reminders",
 			description:
 				"Daily reminders to check in for your Fizzy Free Journey at 3:00 PM and 8:45 PM.",
 			start: [now.getFullYear(), now.getMonth() + 1, now.getDate()],
-			startInputType: "local", // Recommended for clarity
-			duration: { minutes: 15 }, // Add a duration for the event
+			startInputType: "local",
+			duration: { minutes: 15 },
 			recurrenceRule: "FREQ=DAILY;COUNT=180", // Repeats daily for ~6 months
 			alarms: [
 				{
@@ -91,7 +88,6 @@ export const ReminderSettings: React.FC = () => {
 				alert("Sorry, there was an error creating the calendar event.");
 				return;
 			}
-			// Create a blob and trigger a download
 			const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
 			const url = URL.createObjectURL(blob);
 			const link = document.createElement("a");
@@ -103,7 +99,7 @@ export const ReminderSettings: React.FC = () => {
 		});
 	};
 
-	// Render this card if notifications are NOT supported (i.e., on iOS)
+	// FIX: This section now correctly shows the "Add to Calendar" UI for iOS users.
 	if (!isSupported) {
 		return (
 			<div className="bg-white rounded-2xl shadow-lg p-6">
