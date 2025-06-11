@@ -7,12 +7,11 @@ export const ReminderSettings: React.FC = () => {
 	const [permission, setPermission] =
 		useState<NotificationPermission>("default");
 	const [isLoading, setIsLoading] = useState(false);
-	// FIX: Add state to track if the Notification API is supported by the browser
 	const [isSupported, setIsSupported] = useState(true);
 
 	useEffect(() => {
-		// FIX: Check if the Notification API exists before using it.
-		if (!("Notification" in window)) {
+		// FIX: More robust check for API support. This was causing Chrome on mobile to fail.
+		if (!("Notification" in window) || !("serviceWorker" in navigator)) {
 			setIsSupported(false);
 			return;
 		}
@@ -28,7 +27,7 @@ export const ReminderSettings: React.FC = () => {
 			if (granted) {
 				setNotificationsEnabled(true);
 				setPermission("granted");
-				notificationManager.scheduleNotifications();
+				await notificationManager.scheduleNotifications(); // Schedule after permission
 				setTimeout(() => {
 					notificationManager.testNotification();
 				}, 1000);
@@ -43,12 +42,9 @@ export const ReminderSettings: React.FC = () => {
 	};
 
 	const handleTestNotification = () => {
-		const notificationManager = NotificationManager.getInstance();
-		notificationManager.testNotification();
+		NotificationManager.getInstance().testNotification();
 	};
 
-	// FIX: Render a helpful message if notifications are not supported.
-	// This prevents the component from crashing and showing a blank screen.
 	if (!isSupported) {
 		return (
 			<div className="bg-white rounded-2xl shadow-lg p-6">
@@ -92,7 +88,6 @@ export const ReminderSettings: React.FC = () => {
 					</p>
 				</div>
 			</div>
-
 			<div className="space-y-4 mb-6">
 				<div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
 					<div className="flex items-center">
@@ -161,7 +156,6 @@ export const ReminderSettings: React.FC = () => {
 					</button>
 				</div>
 			)}
-
 			{permission === "granted" && (
 				<div className="space-y-4">
 					<div className="p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -186,7 +180,6 @@ export const ReminderSettings: React.FC = () => {
 					</button>
 				</div>
 			)}
-
 			{permission === "denied" && (
 				<div className="p-4 bg-red-50 border border-red-200 rounded-lg">
 					<div className="flex items-start">

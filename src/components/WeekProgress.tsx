@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import {
 	Calendar,
@@ -37,23 +36,22 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 				? "bad"
 				: "good"
 			: "pending";
-
 		return { afternoonStatus, eveningStatus };
 	};
 
-	const getStatusIcon = (status: string, size = 12) => {
+	const getStatusIcon = (status: string, size = 14) => {
 		switch (status) {
 			case "good":
-				return <CheckCircle size={size} className="text-green-500 mx-auto" />;
+				return <CheckCircle size={size} className="text-green-500" />;
 			case "bad":
-				return <XCircle size={size} className="text-red-500 mx-auto" />;
+				return <XCircle size={size} className="text-red-500" />;
 			default:
-				return <Clock size={size} className="text-gray-400 mx-auto" />;
+				return <Clock size={size} className="text-gray-400" />;
 		}
 	};
 
 	return (
-		<div className="bg-white rounded-2xl shadow-lg p-6">
+		<div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center">
 					<Calendar className="text-blue-600 mr-3" size={24} />
@@ -65,7 +63,6 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 						</p>
 					</div>
 				</div>
-
 				<div className="text-right">
 					<div className="text-2xl font-bold text-gray-800">
 						{weekData.percentage.toFixed(0)}%
@@ -94,7 +91,7 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 			)}
 
 			<div className="mb-6">
-				<div className="flex justify-between text-sm text-gray-600 mb-2">
+				<div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-2">
 					<span>{weekData.cleanDays} clean check-ins</span>
 					<span>{weekData.totalCheckins} total check-ins</span>
 				</div>
@@ -108,8 +105,7 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 				</div>
 			</div>
 
-			{/* FIX: Changed gap and padding for better mobile view */}
-			<div className="grid grid-cols-7 gap-1 mb-4">
+			<div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-4">
 				{weekData.entries.map((entry) => {
 					const date = new Date(entry.date);
 					const dayName = date.toLocaleDateString("en-US", {
@@ -120,25 +116,35 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 					return (
 						<div
 							key={entry.date}
-							className="p-1 sm:p-2 rounded-lg border-2 border-gray-100 bg-gray-50"
+							className="p-1 sm:p-2 rounded-lg border border-gray-100 bg-gray-50"
 						>
 							<div className="text-center">
-								<div className="text-xs font-medium text-gray-600 mb-1">
+								<div className="text-xs font-medium text-gray-600">
 									{dayName}
 								</div>
-								<div className="text-sm font-bold text-gray-800 mb-2">
+								<div className="text-sm sm:text-base font-bold text-gray-800 my-1">
 									{date.getDate()}
 								</div>
 
-								{/* FIX: Stacked time and icon vertically for better responsiveness */}
-								<div className="space-y-2">
-									<div className="text-center">
-										<div className="text-xs text-gray-500">3PM</div>
-										{getStatusIcon(afternoonStatus, 14)}
+								{/* FIX: Using flex-col for better alignment and spacing. */}
+								<div className="space-y-2 mt-1">
+									<div className="flex flex-col items-center space-y-0.5">
+										<span
+											className="text-xs text-gray-500"
+											style={{ fontSize: "0.6rem" }}
+										>
+											3PM
+										</span>
+										{getStatusIcon(afternoonStatus)}
 									</div>
-									<div className="text-center">
-										<div className="text-xs text-gray-500">8:45PM</div>
-										{getStatusIcon(eveningStatus, 14)}
+									<div className="flex flex-col items-center space-y-0.5">
+										<span
+											className="text-xs text-gray-500"
+											style={{ fontSize: "0.6rem" }}
+										>
+											8:45PM
+										</span>
+										{getStatusIcon(eveningStatus)}
 									</div>
 								</div>
 							</div>
@@ -152,13 +158,9 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 					<div>
 						<p className="text-sm font-medium text-gray-700">
 							{weekData.totalCheckins === 0
-								? "No check-ins this week yet"
-								: weekData.isComplete && weekData.percentage >= 70
-								? "🎉 Excellent week! Reward earned!"
+								? "No check-ins yet"
 								: weekData.percentage === 100
 								? "🎉 Perfect week! Keep it up!"
-								: weekData.percentage >= 70
-								? "Great progress this week!"
 								: "Every check-in is progress. Keep going!"}
 						</p>
 						<p className="text-xs text-gray-500 mt-1">
@@ -166,7 +168,6 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 								`${14 - weekData.totalCheckins} check-ins remaining`}
 						</p>
 					</div>
-
 					{weekData.isComplete &&
 						weekData.percentage >= 70 &&
 						!weekData.reward && <Gift className="text-purple-600" size={20} />}
