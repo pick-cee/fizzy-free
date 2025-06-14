@@ -1,5 +1,12 @@
 import React from "react";
-import { BarChart3, TrendingUp } from "lucide-react";
+import {
+	BarChart3,
+	TrendingUp,
+	TrendingDown,
+	Minus,
+	Trophy,
+	ShieldAlert,
+} from "lucide-react";
 import { MonthData } from "../types";
 
 interface MonthProgressProps {
@@ -14,12 +21,19 @@ export const MonthProgress: React.FC<MonthProgressProps> = ({ monthData }) => {
 		return "from-red-400 to-red-600";
 	};
 
-	const getMotivationalMessage = (percentage: number) => {
-		if (percentage >= 95) return "Outstanding dedication! 🎊";
-		if (percentage >= 85) return "Excellent progress! ✨";
-		if (percentage >= 70) return "Great job staying consistent! 👍";
-		if (percentage >= 50) return "Good progress, keep pushing! 💪";
-		return "Every step forward counts! 🚶";
+	const getTrendIcon = (
+		trend: "Improving" | "Declining" | "Steady" | "N/A"
+	) => {
+		switch (trend) {
+			case "Improving":
+				return <TrendingUp className="text-green-600" size={24} />;
+			case "Declining":
+				return <TrendingDown className="text-red-600" size={24} />;
+			case "Steady":
+				return <Minus className="text-gray-600" size={24} />;
+			default:
+				return null;
+		}
 	};
 
 	return (
@@ -42,42 +56,6 @@ export const MonthProgress: React.FC<MonthProgressProps> = ({ monthData }) => {
 				</div>
 			</div>
 
-			<div className="flex justify-center mb-6">
-				<div className="relative w-32 h-32">
-					<svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
-						<path
-							d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-							fill="none"
-							stroke="#e5e7eb"
-							strokeWidth="3"
-						/>
-						<path
-							d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-							fill="none"
-							stroke="url(#gradient)"
-							strokeWidth="3"
-							strokeDasharray={`${monthData.percentage}, 100`}
-							className="transition-all duration-1000"
-						/>
-						<defs>
-							<linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-								<stop offset="0%" stopColor="#60a5fa" />
-								<stop offset="100%" stopColor="#3b82f6" />
-							</linearGradient>
-						</defs>
-					</svg>
-					<div className="absolute inset-0 flex items-center justify-center">
-						<div className="text-center">
-							<div className="text-2xl font-bold text-gray-800">
-								{monthData.cleanDays}
-							</div>
-							<div className="text-xs text-gray-600">clean check-ins</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* FIX: Make stats grid responsive. */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
 				<div className="bg-blue-50 p-4 rounded-lg text-center">
 					<div className="text-2xl font-bold text-blue-600">
@@ -115,12 +93,61 @@ export const MonthProgress: React.FC<MonthProgressProps> = ({ monthData }) => {
 				))}
 			</div>
 
-			<div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-100">
-				<div className="flex items-center">
-					<TrendingUp className="text-blue-600 mr-2" size={20} />
-					<p className="text-sm font-medium text-gray-700">
-						{getMotivationalMessage(monthData.percentage)}
-					</p>
+			{/* New Monthly Insights Section */}
+			<div>
+				<h4 className="font-semibold text-gray-700 text-sm mb-3">
+					Monthly Insights
+				</h4>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{monthData.bestWeek && (
+						<div className="bg-green-50 p-4 rounded-lg flex items-center">
+							<div className="bg-green-100 p-2 rounded-full mr-3">
+								<Trophy className="text-green-600" size={20} />
+							</div>
+							<div>
+								<p className="font-semibold text-sm text-green-800">
+									Best Week
+								</p>
+								<p className="text-xs text-green-700">
+									Week of{" "}
+									{new Date(monthData.bestWeek.weekStart).toLocaleDateString(
+										"en-US",
+										{ month: "short", day: "numeric" }
+									)}{" "}
+									was your strongest!
+								</p>
+							</div>
+						</div>
+					)}
+					<div className="bg-blue-50 p-4 rounded-lg flex items-center">
+						<div className="bg-blue-100 p-2 rounded-full mr-3">
+							{getTrendIcon(monthData.trend)}
+						</div>
+						<div>
+							<p className="font-semibold text-sm text-blue-800">
+								Monthly Trend
+							</p>
+							<p className="text-xs text-blue-700">
+								Your progress is {monthData.trend.toLowerCase()} this month.
+							</p>
+						</div>
+					</div>
+					{monthData.missedCheckins > 0 && (
+						<div className="bg-yellow-50 p-4 rounded-lg flex items-center md:col-span-2">
+							<div className="bg-yellow-100 p-2 rounded-full mr-3">
+								<ShieldAlert className="text-yellow-600" size={20} />
+							</div>
+							<div>
+								<p className="font-semibold text-sm text-yellow-800">
+									Missed Check-ins
+								</p>
+								<p className="text-xs text-yellow-700">
+									You missed a total of {monthData.missedCheckins} check-ins
+									this month.
+								</p>
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

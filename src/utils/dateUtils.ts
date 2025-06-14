@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 export const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
@@ -22,14 +23,14 @@ export const getWeeksInMonth = (year: number, month: number): Date[] => {
   const weeks: Date[] = [];
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  
+
   let currentWeekStart = getWeekStart(firstDay);
-  
+
   while (currentWeekStart <= lastDay) {
     weeks.push(new Date(currentWeekStart));
     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
   }
-  
+
   return weeks;
 };
 
@@ -44,10 +45,10 @@ export const getDaysInWeek = (weekStart: Date): Date[] => {
 };
 
 export const formatDateForDisplay = (date: Date): string => {
-  return date.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
   });
 };
 

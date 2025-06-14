@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Check, X, Clock, Sun, Moon } from "lucide-react";
 import { DayEntry } from "../types";
 
@@ -12,13 +12,28 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	todayEntry,
 	onCheckIn,
 }) => {
-	const getCurrentTime = () => {
-		return new Date().toLocaleTimeString("en-US", {
+	const [currentTime, setCurrentTime] = useState(
+		new Date().toLocaleTimeString("en-US", {
 			hour: "2-digit",
 			minute: "2-digit",
 			hour12: true,
-		});
-	};
+		})
+	);
+
+	useEffect(() => {
+		const timerId = setInterval(() => {
+			setCurrentTime(
+				new Date().toLocaleTimeString("en-US", {
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: false,
+					second: "2-digit",
+				})
+			);
+		}, 1000); // Update time every second
+
+		return () => clearInterval(timerId); // Cleanup interval on component unmount
+	}, []);
 
 	const isReminderTime = () => {
 		const now = new Date();
@@ -50,7 +65,7 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 					</h2>
 					<div className="flex items-center text-sm text-gray-500">
 						<Clock size={16} className="mr-1" />
-						{getCurrentTime()}
+						{currentTime}
 					</div>
 				</div>
 
@@ -157,7 +172,7 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 				</div>
 				<div className="flex items-center text-sm text-gray-500">
 					<Clock size={16} className="mr-1" />
-					{getCurrentTime()}
+					{currentTime}
 				</div>
 			</div>
 

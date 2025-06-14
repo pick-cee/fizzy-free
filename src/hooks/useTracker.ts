@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useCallback } from 'react';
 import { DayEntry, WeekData, MonthData, WeeklyReward } from '../types';
 import { getToday, getWeekStart, getWeekEnd, getDaysInWeek, formatDate, getWeeksInMonth, getMonthName } from '../utils/dateUtils';
@@ -18,51 +20,65 @@ export const useTracker = () => {
       return;
     }
 
+    // Sort entries chronologically to ensure correct streak calculation.
     const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    // Use a Map for efficient O(1) average lookup of entries by date.
     const entriesByDate = new Map(sortedEntries.map(e => [e.date, e]));
 
-    const current = 0;
     let longest = 0;
     let tempStreak = 0;
 
-    // Calculate longest streak
-    const firstDate = new Date(sortedEntries[0].date);
-    const lastDate = new Date(sortedEntries[sortedEntries.length - 1].date);
-    const today = new Date();
+    // --- Calculate Longest Streak ---
+    // To find the longest streak ever, we iterate through all days from the very
+    // first entry to today. This ensures all historical data is considered.
+    if (sortedEntries.length > 0) {
+      const firstDate = new Date(sortedEntries[0].date);
+      const today = new Date();
+      // Loop day-by-day from the start date.
+      for (let d = firstDate; d <= today; d.setDate(d.getDate() + 1)) {
+        const dateStr = formatDate(d);
+        const entry = entriesByDate.get(dateStr);
 
-    // Iterate from the very first entry date to today
-    for (let d = firstDate; d <= today; d.setDate(d.getDate() + 1)) {
-      const dateStr = formatDate(d);
-      const entry = entriesByDate.get(dateStr);
-
-      if (entry && (entry.afternoon_checkin || entry.evening_checkin) && !entry.afternoon_had_drink && !entry.evening_had_drink) {
-        tempStreak++;
-      } else {
-        longest = Math.max(longest, tempStreak);
-        tempStreak = 0;
+        // A day is "clean" if an entry exists, at least one check-in was made,
+        // and no drinks were recorded for either check-in.
+        if (entry && (entry.afternoon_checkin || entry.evening_checkin) && !entry.afternoon_had_drink && !entry.evening_had_drink) {
+          tempStreak++;
+        } else {
+          // If the day is not clean, the streak is broken.
+          // Update the longest streak found so far and reset the temporary counter.
+          longest = Math.max(longest, tempStreak);
+          tempStreak = 0;
+        }
       }
     }
+    // Final check in case the streak extends to the very last day.
     longest = Math.max(longest, tempStreak);
     setLongestStreak(longest);
 
 
-    // Calculate current streak from today backwards
+    // --- Calculate Current Streak ---
+    // To find the current streak, we iterate backwards from today.
     tempStreak = 0; // reset for current streak calculation
     const checkDate = new Date();
 
+    // Check up to 5 years back, which is a reasonable limit.
     for (let i = 0; i < 365 * 5; i++) { // Check up to 5 years back
       const dateStr = formatDate(checkDate);
       const entry = entriesByDate.get(dateStr);
 
+      // Check if the day was clean.
       if (entry && (entry.afternoon_checkin || entry.evening_checkin) && !entry.afternoon_had_drink && !entry.evening_had_drink) {
         tempStreak++;
       } else {
-        // If there's a record of a drink or a missing entry (and it's not today), the streak is broken
+        // The streak is broken if there's a record of a drink, or if an entry is
+        // missing for a day that is *not* today. A missing entry for today doesn't
+        // break the streak yet, as the user can still check in.
         const isToday = dateStr === getToday();
         if (!isToday || (entry && (entry.afternoon_had_drink || entry.evening_had_drink))) {
-          break;
+          break; // Exit the loop as the current streak has ended.
         }
       }
+      // Move to the previous day for the next iteration.
       checkDate.setDate(checkDate.getDate() - 1);
     }
     setCurrentStreak(tempStreak);
@@ -222,7 +238,7 @@ export const useTracker = () => {
       };
     });
 
-    const totalCheckins = weekEntries.reduce((sum, entry) => sum + (entry.afternoon_checkin ? 1 : 0) + (entry.evening_checkin ? 1 : 0), 0);
+    const totalCompletedCheckins = weekEntries.reduce((sum, entry) => sum + (entry.afternoon_checkin ? 1 : 0) + (entry.evening_checkin ? 1 : 0), 0);
     const cleanCheckins = weekEntries.reduce((sum, entry) => {
       let clean = 0;
       if (entry.afternoon_checkin && !entry.afternoon_had_drink) clean++;
@@ -230,6 +246,41 @@ export const useTracker = () => {
       return sum + clean;
     }, 0);
 
+    const now = new Date();
+    let totalExpectedCheckins = 0;
+    let missedCheckins = 0;
+
+    const sortedEntries = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    const firstEverEntryDate = sortedEntries.length > 0 ? new Date(sortedEntries[0].date) : null;
+
+    weekEntries.forEach(entry => {
+      const entryDate = new Date(entry.date);
+
+      if (firstEverEntryDate && entryDate < firstEverEntryDate) {
+        return;
+      }
+
+      const afternoonMissedTime = new Date(entry.date);
+      afternoonMissedTime.setHours(16, 0, 0, 0);
+
+      const eveningMissedTime = new Date(entry.date);
+      eveningMissedTime.setHours(21, 45, 0, 0);
+
+      if (now > afternoonMissedTime) {
+        totalExpectedCheckins++;
+        if (!entry.afternoon_checkin) {
+          missedCheckins++;
+        }
+      }
+      if (now > eveningMissedTime) {
+        totalExpectedCheckins++;
+        if (!entry.evening_checkin) {
+          missedCheckins++;
+        }
+      }
+    });
+
+    const percentage = totalExpectedCheckins > 0 ? (cleanCheckins / totalExpectedCheckins) * 100 : 0;
     const isComplete = new Date() > weekEnd;
 
     const weekData: WeekData = {
@@ -237,8 +288,10 @@ export const useTracker = () => {
       weekEnd: formatDate(weekEnd),
       entries: weekEntries,
       cleanDays: cleanCheckins,
-      totalCheckins,
-      percentage: totalCheckins > 0 ? (cleanCheckins / totalCheckins) * 100 : 0,
+      totalCheckins: totalCompletedCheckins,
+      missedCheckins: missedCheckins,
+      totalExpectedCheckins: totalExpectedCheckins, // Pass this new property
+      percentage: percentage,
       isComplete,
     };
 
@@ -258,14 +311,52 @@ export const useTracker = () => {
 
     const totalCleanDays = weekDataArray.reduce((sum, week) => sum + week.cleanDays, 0);
     const totalCheckins = weekDataArray.reduce((sum, week) => sum + week.totalCheckins, 0);
+    const totalMissedCheckins = weekDataArray.reduce((sum, week) => sum + week.missedCheckins, 0);
+
+    // FIX: Use the already calculated (and correct) value from each week.
+    const totalExpectedCheckinsInMonth = weekDataArray.reduce((sum, week) => sum + week.totalExpectedCheckins, 0);
+
+    let bestWeek: WeekData | null = null;
+    if (weekDataArray.length > 0) {
+      const relevantWeeks = weekDataArray.filter(w => w.totalExpectedCheckins > 0);
+      if (relevantWeeks.length > 0) {
+        bestWeek = relevantWeeks.reduce((best, current) =>
+          (current.percentage > best.percentage ? current : best), relevantWeeks[0]);
+      }
+    }
+
+    let trend: 'Improving' | 'Declining' | 'Steady' | 'N/A' = 'N/A';
+    if (weekDataArray.length >= 2) {
+      const relevantWeeks = weekDataArray.filter(w => w.totalExpectedCheckins > 0);
+      if (relevantWeeks.length >= 2) {
+        const firstHalfWeeks = relevantWeeks.slice(0, Math.ceil(relevantWeeks.length / 2));
+        const secondHalfWeeks = relevantWeeks.slice(Math.ceil(relevantWeeks.length / 2));
+
+        if (secondHalfWeeks.length > 0) {
+          const firstHalfAvg = firstHalfWeeks.reduce((sum, week) => sum + week.percentage, 0) / firstHalfWeeks.length;
+          const secondHalfAvg = secondHalfWeeks.reduce((sum, week) => sum + week.percentage, 0) / secondHalfWeeks.length;
+
+          if (secondHalfAvg > firstHalfAvg + 5) {
+            trend = 'Improving';
+          } else if (secondHalfAvg < firstHalfAvg - 5) {
+            trend = 'Declining';
+          } else {
+            trend = 'Steady';
+          }
+        }
+      }
+    }
 
     return {
       month: getMonthName(month),
       year,
       cleanDays: totalCleanDays,
       totalCheckins,
-      percentage: totalCheckins > 0 ? (totalCleanDays / totalCheckins) * 100 : 0,
-      weeks: weekDataArray
+      missedCheckins: totalMissedCheckins,
+      percentage: totalExpectedCheckinsInMonth > 0 ? (totalCleanDays / totalExpectedCheckinsInMonth) * 100 : 0,
+      weeks: weekDataArray,
+      bestWeek,
+      trend,
     };
   }, [getWeekData]);
 

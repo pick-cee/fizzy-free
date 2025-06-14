@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import {
 	Calendar,
@@ -6,6 +7,7 @@ import {
 	Clock,
 	Gift,
 	Star,
+	Slash,
 } from "lucide-react";
 import { WeekData } from "../types";
 
@@ -26,16 +28,26 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 	};
 
 	const getDayStatus = (entry: any) => {
-		const afternoonStatus = entry.afternoon_checkin
-			? entry.afternoon_had_drink
-				? "bad"
-				: "good"
-			: "pending";
-		const eveningStatus = entry.evening_checkin
-			? entry.evening_had_drink
-				? "bad"
-				: "good"
-			: "pending";
+		const now = new Date();
+		const afternoonCheckinTime = new Date(entry.date);
+		afternoonCheckinTime.setHours(15, 0, 0, 0);
+		const eveningCheckinTime = new Date(entry.date);
+		eveningCheckinTime.setHours(20, 45, 0, 0);
+
+		let afternoonStatus = "pending";
+		if (entry.afternoon_checkin) {
+			afternoonStatus = entry.afternoon_had_drink ? "bad" : "good";
+		} else if (now.getTime() > afternoonCheckinTime.getTime() + 3600000) {
+			afternoonStatus = "missed";
+		}
+
+		let eveningStatus = "pending";
+		if (entry.evening_checkin) {
+			eveningStatus = entry.evening_had_drink ? "bad" : "good";
+		} else if (now.getTime() > eveningCheckinTime.getTime() + 3600000) {
+			eveningStatus = "missed";
+		}
+
 		return { afternoonStatus, eveningStatus };
 	};
 
@@ -45,7 +57,9 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 				return <CheckCircle size={size} className="text-green-500" />;
 			case "bad":
 				return <XCircle size={size} className="text-red-500" />;
-			default:
+			case "missed":
+				return <Slash size={size} className="text-yellow-500" />;
+			default: // 'pending'
 				return <Clock size={size} className="text-gray-400" />;
 		}
 	};
@@ -126,7 +140,6 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 									{date.getDate()}
 								</div>
 
-								{/* FIX: Using flex-col for better alignment and spacing. */}
 								<div className="space-y-2 mt-1">
 									<div className="flex flex-col items-center space-y-0.5">
 										<span
@@ -163,10 +176,18 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
 								? "🎉 Perfect week! Keep it up!"
 								: "Every check-in is progress. Keep going!"}
 						</p>
-						<p className="text-xs text-gray-500 mt-1">
-							{14 - weekData.totalCheckins > 0 &&
-								`${14 - weekData.totalCheckins} check-ins remaining`}
-						</p>
+						<div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-x-4">
+							{14 - weekData.totalCheckins > 0 && (
+								<span>{`${
+									14 - weekData.totalCheckins - weekData.missedCheckins
+								} check-ins remaining`}</span>
+							)}
+							{weekData.missedCheckins > 0 && (
+								<span className="text-yellow-600 font-medium">
+									{`${weekData.missedCheckins} check-ins missed`}
+								</span>
+							)}
+						</div>
 					</div>
 					{weekData.isComplete &&
 						weekData.percentage >= 70 &&

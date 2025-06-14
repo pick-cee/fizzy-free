@@ -15,6 +15,8 @@ export interface WeekData {
   entries: DayEntry[];
   cleanDays: number;
   totalCheckins: number;
+  missedCheckins: number;
+  totalExpectedCheckins: number; // Added this property
   percentage: number;
   isComplete: boolean;
   reward?: WeeklyReward;
@@ -25,8 +27,11 @@ export interface MonthData {
   year: number;
   cleanDays: number;
   totalCheckins: number;
+  missedCheckins: number;
   percentage: number;
   weeks: WeekData[];
+  bestWeek: WeekData | null;
+  trend: 'Improving' | 'Declining' | 'Steady' | 'N/A';
 }
 
 export interface WeeklyReward {
