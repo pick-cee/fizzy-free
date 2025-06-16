@@ -7,6 +7,7 @@ import { WeekProgress } from "./components/WeekProgress";
 import { MonthProgress } from "./components/MonthProgress";
 import { ReminderSettings } from "./components/ReminderSettings";
 import { WeekData, MonthData } from "./types";
+import { PwaUpdater } from "./components/PwaUpdater";
 
 type Tab = "home" | "progress" | "settings";
 
@@ -176,6 +177,7 @@ function App() {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+			<PwaUpdater />
 			<header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
 				<div className="max-w-4xl mx-auto px-4 py-4">
 					<div className="flex items-center justify-between">
