@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/components/CheckInCard.tsx
+
 import React, { useState, useEffect } from "react";
-import { Check, X, Clock, Sun, Moon } from "lucide-react";
+import { Check, X, Clock, Sun, Moon, AlertTriangle } from "lucide-react";
 import { DayEntry } from "../types";
 
 interface CheckInCardProps {
@@ -12,46 +13,30 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	todayEntry,
 	onCheckIn,
 }) => {
-	const [currentTime, setCurrentTime] = useState(
-		new Date().toLocaleTimeString("en-US", {
-			hour: "2-digit",
-			minute: "2-digit",
-			hour12: true,
-		})
-	);
+	const [now, setNow] = useState(new Date());
 
 	useEffect(() => {
-		const timerId = setInterval(() => {
-			setCurrentTime(
-				new Date().toLocaleTimeString("en-US", {
-					hour: "2-digit",
-					minute: "2-digit",
-					hour12: false,
-					second: "2-digit",
-				})
-			);
-		}, 1000); // Update time every second
-
-		return () => clearInterval(timerId); // Cleanup interval on component unmount
+		// This timer updates the component every minute to check grace periods.
+		const timerId = setInterval(() => setNow(new Date()), 60000);
+		return () => clearInterval(timerId);
 	}, []);
 
-	const isReminderTime = () => {
-		const now = new Date();
-		const hours = now.getHours();
-		const minutes = now.getMinutes();
-
-		return (hours === 15 && minutes === 0) || (hours === 20 && minutes === 45);
-	};
-
-	const getCurrentPeriod = () => {
-		const hours = new Date().getHours();
-		return hours < 18 ? "afternoon" : "evening";
-	};
-
+	// --- Check-in Status Logic ---
 	const needsAfternoonCheckin = !todayEntry?.afternoon_checkin;
 	const needsEveningCheckin = !todayEntry?.evening_checkin;
-	const currentPeriod = getCurrentPeriod();
 
+	const afternoonGraceEnd = new Date(now);
+	afternoonGraceEnd.setHours(16, 0, 0, 0); // Grace period ends at 4:00 PM
+
+	const eveningGraceEnd = new Date(now);
+	eveningGraceEnd.setHours(21, 45, 0, 0); // Grace period ends at 9:45 PM
+
+	const isAfternoonMissed = needsAfternoonCheckin && now > afternoonGraceEnd;
+	const isEveningMissed = needsEveningCheckin && now > eveningGraceEnd;
+
+	// --- RENDER LOGIC ---
+
+	// 1. All check-ins for today are complete
 	if (todayEntry?.afternoon_checkin && todayEntry?.evening_checkin) {
 		const totalHadDrinks =
 			(todayEntry.afternoon_had_drink ? 1 : 0) +
@@ -63,13 +48,7 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 					<h2 className="text-xl font-bold text-gray-800">
 						Today's Check-ins Complete
 					</h2>
-					<div className="flex items-center text-sm text-gray-500">
-						<Clock size={16} className="mr-1" />
-						{currentTime}
-					</div>
 				</div>
-
-				{/* FIX: Make grid responsive. Stacks on mobile, side-by-side on larger screens. */}
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
 					<div
 						className={`p-4 rounded-lg border-2 ${
@@ -93,7 +72,6 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 							{todayEntry.afternoon_had_drink ? "Had drink" : "Stayed clean"}
 						</p>
 					</div>
-
 					<div
 						className={`p-4 rounded-lg border-2 ${
 							todayEntry.evening_had_drink
@@ -117,7 +95,6 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 						</p>
 					</div>
 				</div>
-
 				<div className="text-center py-4">
 					<div
 						className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 ${
@@ -147,8 +124,52 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 		);
 	}
 
+	// 2. A check-in has been missed
+	if (isAfternoonMissed || isEveningMissed) {
+		const period = isAfternoonMissed ? "Afternoon" : "Evening";
+		const Icon = isAfternoonMissed ? Sun : Moon;
+
+		return (
+			<div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-l-yellow-500">
+				<div className="flex items-center justify-between mb-4">
+					<div className="flex items-center">
+						<Icon
+							className={`mr-3 ${
+								isAfternoonMissed ? "text-yellow-600" : "text-indigo-600"
+							}`}
+							size={24}
+						/>
+						<div>
+							<h2 className="text-xl font-bold text-gray-800">
+								{period} Check-in Missed
+							</h2>
+							<p className="text-sm text-gray-600">
+								The check-in window has closed.
+							</p>
+						</div>
+					</div>
+				</div>
+				<div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+					<div className="flex items-start">
+						<AlertTriangle className="text-yellow-600 mr-3 mt-0.5" size={20} />
+						<div>
+							<p className="text-sm font-medium text-yellow-800 mb-1">
+								Don't worry, just get the next one!
+							</p>
+							<p className="text-sm text-yellow-700">
+								Consistency is key. Missing one check-in doesn't erase your
+								progress. Focus on being ready for your next one to keep your
+								journey going.
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// 3. A check-in is currently available
 	const showAfternoon = needsAfternoonCheckin;
-	const showEvening = !needsAfternoonCheckin && needsEveningCheckin;
 	const period = showAfternoon ? "afternoon" : "evening";
 	const timeLabel = showAfternoon ? "3:00 PM" : "8:45 PM";
 	const IconComponent = showAfternoon ? Sun : Moon;
@@ -172,11 +193,15 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 				</div>
 				<div className="flex items-center text-sm text-gray-500">
 					<Clock size={16} className="mr-1" />
-					{currentTime}
+					{now.toLocaleTimeString("en-US", {
+						hour: "2-digit",
+						minute: "2-digit",
+						hour12: true,
+					})}
 				</div>
 			</div>
 
-			{todayEntry?.afternoon_checkin && showEvening && (
+			{todayEntry?.afternoon_checkin && !needsAfternoonCheckin && (
 				<div className="mb-4 p-3 bg-white rounded-lg border">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center">
@@ -199,7 +224,6 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 					</div>
 				</div>
 			)}
-
 			<div className="text-center mb-6">
 				<h3 className="text-lg font-semibold mb-2 text-gray-800">
 					Did you have any fizzy drinks since your last check-in?
@@ -208,8 +232,6 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 					Be honest with yourself - this is your journey to health
 				</p>
 			</div>
-
-			{/* FIX: Make button grid responsive */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				<button
 					onClick={() => onCheckIn(period, false)}
