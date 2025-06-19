@@ -29,7 +29,7 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	afternoonCheckinTime.setHours(15, 0, 0, 0); // 3:00 PM
 
 	const afternoonGraceEnd = new Date(now);
-	afternoonGraceEnd.setHours(16, 0, 0, 0); // Grace period ends at 4:00 PM
+	afternoonGraceEnd.setHours(16, 0, 0, 0); // Grace period ends at 4:00 PM everyday
 
 	const eveningCheckinTime = new Date(now);
 	eveningCheckinTime.setHours(20, 45, 0, 0); // 8:45 PM
