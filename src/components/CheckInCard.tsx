@@ -29,7 +29,7 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	afternoonCheckinTime.setHours(15, 0, 0, 0); // 3:00 PM
 
 	const afternoonGraceEnd = new Date(now);
-	afternoonGraceEnd.setHours(16, 0, 0, 0); // Grace period ends at 4:00 PM everyday
+	afternoonGraceEnd.setHours(16, 0, 0, 0); // Grace period ends at 4:00 PM
 
 	const eveningCheckinTime = new Date(now);
 	eveningCheckinTime.setHours(20, 45, 0, 0); // 8:45 PM
@@ -42,7 +42,6 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	// Priority 1: Is there an active check-in window RIGHT NOW?
 	const isEveningActive =
 		needsEveningCheckin && now >= eveningCheckinTime && now < eveningGraceEnd;
-	// The afternoon check-in is available from its start time until the evening one begins.
 	const isAfternoonActive =
 		needsAfternoonCheckin &&
 		now >= afternoonCheckinTime &&
@@ -176,115 +175,111 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 		);
 	}
 
-	// Priority 3: If nothing is active or missed, they must all be complete (or it's before the first checkin).
-	// This card serves as the "completed" and "waiting" state.
-	const totalHadDrinks =
-		(todayEntry?.afternoon_had_drink ? 1 : 0) +
-		(todayEntry?.evening_had_drink ? 1 : 0);
+	// Priority 3: Handle completed or waiting states.
+	if (!needsAfternoonCheckin && !needsEveningCheckin) {
+		// Both check-ins are done for the day.
+		const totalHadDrinks =
+			(todayEntry.afternoon_had_drink ? 1 : 0) +
+			(todayEntry.evening_had_drink ? 1 : 0);
+		return (
+			<div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-l-blue-500">
+				<div className="flex items-center justify-between mb-4">
+					<h2 className="text-xl font-bold text-gray-800">
+						Today's Check-ins Complete
+					</h2>
+				</div>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+					<div
+						className={`p-4 rounded-lg border-2 bg-green-50 border-green-200`}
+					>
+						<div className="flex items-center justify-between mb-2">
+							<div className="flex items-center">
+								<Sun size={16} className="text-yellow-600 mr-2" />
+								<span className="font-medium text-sm">3:00 PM</span>
+							</div>
+							{todayEntry.afternoon_had_drink ? (
+								<X size={16} className="text-red-600" />
+							) : (
+								<Check size={16} className="text-green-600" />
+							)}
+						</div>
+						<p className="text-xs text-gray-600">
+							{todayEntry.afternoon_had_drink ? "Had drink" : "Stayed clean"}
+						</p>
+					</div>
+					<div
+						className={`p-4 rounded-lg border-2 ${
+							todayEntry.evening_had_drink
+								? "bg-red-50 border-red-200"
+								: "bg-green-50 border-green-200"
+						}`}
+					>
+						<div className="flex items-center justify-between mb-2">
+							<div className="flex items-center">
+								<Moon size={16} className="text-indigo-600 mr-2" />
+								<span className="font-medium text-sm">8:45 PM</span>
+							</div>
+							{todayEntry.evening_had_drink ? (
+								<X size={16} className="text-red-600" />
+							) : (
+								<Check size={16} className="text-green-600" />
+							)}
+						</div>
+						<p className="text-xs text-gray-600">
+							{todayEntry.evening_had_drink ? "Had drink" : "Stayed clean"}
+						</p>
+					</div>
+				</div>
+				<div className="text-center py-4">
+					<div
+						className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 ${
+							totalHadDrinks === 0
+								? "bg-green-100 text-green-600"
+								: totalHadDrinks === 1
+								? "bg-yellow-100 text-yellow-600"
+								: "bg-red-100 text-red-600"
+						}`}
+					>
+						{totalHadDrinks === 0 ? <Check size={24} /> : <X size={24} />}
+					</div>
+					<h3 className="text-lg font-semibold mb-2">
+						{totalHadDrinks === 0
+							? "Perfect day! Both check-ins clean!"
+							: totalHadDrinks === 1
+							? "One slip, but you checked in honestly"
+							: "Tough day, but tomorrow is a fresh start"}
+					</h3>
+					<p className="text-gray-600 text-sm">
+						{totalHadDrinks === 0
+							? "You're building incredible momentum!"
+							: "Every honest check-in is progress. Keep going!"}
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	// Default Fallback: It's a new day, waiting for the first check-in.
 	return (
-		<div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-l-blue-500">
-			<div className="flex items-center justify-between mb-4">
+		<div className="bg-white rounded-2xl shadow-lg p-6 text-center">
+			<div className="flex justify-center items-center mb-4">
+				<Sun className="text-yellow-500 mr-3" size={28} />
 				<h2 className="text-xl font-bold text-gray-800">
-					{needsAfternoonCheckin && needsEveningCheckin
-						? "Ready for Today"
-						: "Today's Check-ins Complete"}
+					Get Ready for Today!
 				</h2>
 			</div>
-
-			{(!needsAfternoonCheckin || !needsEveningCheckin) && (
-				<>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-						<div
-							className={`p-4 rounded-lg border-2 ${
-								todayEntry?.afternoon_had_drink
-									? "bg-red-50 border-red-200"
-									: "bg-green-50 border-green-200"
-							}`}
-						>
-							<div className="flex items-center justify-between mb-2">
-								<div className="flex items-center">
-									<Sun size={16} className="text-yellow-600 mr-2" />
-									<span className="font-medium text-sm">3:00 PM</span>
-								</div>
-								{todayEntry?.afternoon_checkin ? (
-									todayEntry.afternoon_had_drink ? (
-										<X size={16} className="text-red-600" />
-									) : (
-										<Check size={16} className="text-green-600" />
-									)
-								) : (
-									<Clock size={16} className="text-gray-400" />
-								)}
-							</div>
-							<p className="text-xs text-gray-600">
-								{todayEntry?.afternoon_checkin
-									? todayEntry.afternoon_had_drink
-										? "Had drink"
-										: "Stayed clean"
-									: "Pending"}
-							</p>
-						</div>
-						<div
-							className={`p-4 rounded-lg border-2 ${
-								todayEntry?.evening_had_drink
-									? "bg-red-50 border-red-200"
-									: "bg-green-50 border-green-200"
-							}`}
-						>
-							<div className="flex items-center justify-between mb-2">
-								<div className="flex items-center">
-									<Moon size={16} className="text-indigo-600 mr-2" />
-									<span className="font-medium text-sm">8:45 PM</span>
-								</div>
-								{todayEntry?.evening_checkin ? (
-									todayEntry.evening_had_drink ? (
-										<X size={16} className="text-red-600" />
-									) : (
-										<Check size={16} className="text-green-600" />
-									)
-								) : (
-									<Clock size={16} className="text-gray-400" />
-								)}
-							</div>
-							<p className="text-xs text-gray-600">
-								{todayEntry?.evening_checkin
-									? todayEntry.evening_had_drink
-										? "Had drink"
-										: "Stayed clean"
-									: "Pending"}
-							</p>
-						</div>
-					</div>
-
-					{!needsAfternoonCheckin && !needsEveningCheckin && (
-						<div className="text-center py-4">
-							<div
-								className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 ${
-									totalHadDrinks === 0
-										? "bg-green-100 text-green-600"
-										: totalHadDrinks === 1
-										? "bg-yellow-100 text-yellow-600"
-										: "bg-red-100 text-red-600"
-								}`}
-							>
-								{totalHadDrinks === 0 ? <Check size={24} /> : <X size={24} />}
-							</div>
-							<h3 className="text-lg font-semibold mb-2">
-								{totalHadDrinks === 0
-									? "Perfect day! Both check-ins clean!"
-									: totalHadDrinks === 1
-									? "One slip, but you checked in honestly"
-									: "Tough day, but tomorrow is a fresh start"}
-							</h3>
-							<p className="text-gray-600 text-sm">
-								{totalHadDrinks === 0
-									? "You're building incredible momentum!"
-									: "Every honest check-in is progress. Keep going!"}
-							</p>
-						</div>
-					)}
-				</>
-			)}
+			<p className="text-gray-600 mb-2">
+				Your first check-in is for the afternoon.
+			</p>
+			<div className="inline-flex items-center justify-center p-3 bg-gray-100 rounded-lg">
+				<Clock size={20} className="text-blue-600 mr-2" />
+				<p className="font-medium text-gray-800">
+					Check-in window opens at 3:00 PM
+				</p>
+			</div>
+			<p className="text-sm text-gray-500 mt-4">
+				Focus on your goal until then. You can do it!
+			</p>
 		</div>
 	);
 };
