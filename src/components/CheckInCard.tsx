@@ -40,14 +40,14 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	// --- RENDER LOGIC BY PRIORITY ---
 
 	// Priority 1: Is there an active check-in window RIGHT NOW?
-	const isEveningActive =
-		needsEveningCheckin && now >= eveningCheckinTime && now < eveningGraceEnd;
 	const isAfternoonActive =
 		needsAfternoonCheckin &&
 		now >= afternoonCheckinTime &&
-		now < eveningCheckinTime;
+		now <= afternoonGraceEnd;
+	const isEveningActive =
+		needsEveningCheckin && now >= eveningCheckinTime && now <= eveningGraceEnd;
 
-	if (isEveningActive || isAfternoonActive) {
+	if (isAfternoonActive || isEveningActive) {
 		const period = isEveningActive ? "evening" : "afternoon";
 		const timeLabel = isEveningActive ? "8:45 PM" : "3:00 PM";
 		const IconComponent = isEveningActive ? Moon : Sun;
@@ -130,13 +130,13 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 	}
 
 	// Priority 2: If no active window, check if a check-in has been missed.
-	const isEveningMissed = needsEveningCheckin && now > eveningGraceEnd;
 	const isAfternoonMissed =
 		needsAfternoonCheckin &&
 		now > afternoonGraceEnd &&
 		now < eveningCheckinTime;
+	const isEveningMissed = needsEveningCheckin && now > eveningGraceEnd;
 
-	if (isEveningMissed || isAfternoonMissed) {
+	if (isAfternoonMissed || isEveningMissed) {
 		const period = isEveningMissed ? "Evening" : "Afternoon";
 		const Icon = isEveningMissed ? Moon : Sun;
 		const iconColor = isEveningMissed ? "text-indigo-600" : "text-yellow-600";
@@ -259,7 +259,53 @@ export const CheckInCard: React.FC<CheckInCardProps> = ({
 		);
 	}
 
-	// Default Fallback: It's a new day, waiting for the first check-in.
+	// Default Fallback: It's a new day, waiting for the first check-in, OR afternoon is done and waiting for evening.
+	if (!needsAfternoonCheckin && now < eveningCheckinTime) {
+		// Afternoon is done, waiting for evening.
+		return (
+			<div className="bg-white rounded-2xl shadow-lg p-6">
+				<div className="flex items-center mb-4">
+					<Moon className="text-indigo-600 mr-3" size={24} />
+					<div>
+						<h2 className="text-xl font-bold text-gray-800">
+							Next Up: Evening
+						</h2>
+						<p className="text-sm text-gray-600">
+							Your next check-in is at 8:45 PM.
+						</p>
+					</div>
+				</div>
+				<div
+					className={`p-4 rounded-lg border-2 ${
+						todayEntry.afternoon_had_drink
+							? "bg-red-50 border-red-200"
+							: "bg-green-50 border-green-200"
+					}`}
+				>
+					<div className="flex items-center justify-between mb-2">
+						<div className="flex items-center">
+							<Sun size={16} className="text-yellow-600 mr-2" />
+							<span className="font-medium text-sm">
+								Afternoon Check-in: Complete
+							</span>
+						</div>
+						{todayEntry.afternoon_had_drink ? (
+							<X size={16} className="text-red-600" />
+						) : (
+							<Check size={16} className="text-green-600" />
+						)}
+					</div>
+					<p className="text-xs text-gray-600">
+						{todayEntry.afternoon_had_drink
+							? "Result: Had a fizzy drink."
+							: "Result: Stayed clean. Great job!"}
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	// It's before 3 PM, waiting for the first check-in.
 	return (
 		<div className="bg-white rounded-2xl shadow-lg p-6 text-center">
 			<div className="flex justify-center items-center mb-4">
